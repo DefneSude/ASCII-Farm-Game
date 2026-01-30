@@ -148,7 +148,7 @@ void drawMap (char map[ROW][COL]){
 		printf("%d ",j);
 	}
 	
-	printf("\t   --- Meanin of Symbols ---");
+	printf("\t   --- Meaning of Symbols ---");
 	printf("\n");
 	
 	for(i=0;i<ROW;i++){
@@ -562,5 +562,6 @@ void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* item,in
     printf("\tGame Loaded Successfully!\n");
     Sleep(1500);
 }
+
 
 
