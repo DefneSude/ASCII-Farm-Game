@@ -200,7 +200,7 @@ void drawMap (char map[ROW][COL]){
 		}
 		else if(i==7){
 			setColor(6);
-			printf("   !:Dried Wheat");
+			printf("   ! :Dried Wheat");
 			setColor(7);
 		}
 		else if(i==8){
@@ -562,3 +562,4 @@ void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* item,in
     printf("\tGame Loaded Successfully!\n");
     Sleep(1500);
 }
+
