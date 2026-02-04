@@ -95,7 +95,7 @@ int main (void){
 				break;
 		}	
 		
-		if(money>=200){
+		if(money>=1000){
 			system("cls");
 			printf("\n\n\n\n\n\n\n\n\n");
 			
@@ -562,6 +562,7 @@ void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* item,in
     printf("\tGame Loaded Successfully!\n");
     Sleep(1500);
 }
+
 
 
 
