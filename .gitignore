@@ -1,6 +1,13 @@
-*.exe
+# Compiled Object files
 *.o
+src/*.o
+
+# Compiled Windows executable files
+*.exe
+
+# IDE specific configuration and layout files
 *.dev
 *.layout
+
+# Game save data file
 farm_save.txt
-src/*.o
