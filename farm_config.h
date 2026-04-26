@@ -22,21 +22,24 @@
 #define ESC 27
 
 void startMap (char map[ROW][COL]);
-void drawMap (char map[ROW][COL]);
-void plantSeed (char map[ROW][COL],int x,int y,int* seed);
-void watering (char map[ROW][COL],int x,int y,int* water);
+void drawMap (char map[ROW][COL],int moves);
+void inventory (char map[ROW][COL], int* water, int* day, int* temprature);
+void plantSeed (char map[ROW][COL],int x,int y,int* wheat_seed,int* moves);
+void watering (char map[ROW][COL],int x,int y,int* water,int* moves);
 void nextDay (char map[ROW][COL],int* day,int* temprature,int* water);
-int menu (char map[ROW][COL],int* water,int* day,int* temprature,int* money, int* harvested_item,int* seed);
-void waterWell (char map[ROW][COL],int* water);
-void harvest (char map[ROW][COL],int x,int y,int* harvested_item);
-void sell (int* harvested_item,int* money);
-void buy (int* money, int* seed);
+int menu (char map[ROW][COL],int* water,int* day,int* temprature,int* money, int* wheat_harvested_item,int* wheat_seed,int* game_hour,int* game_minute, time_t* last_time,int* moves);
+void waterWell (char map[ROW][COL],int* water,int* moves);
+void harvest (char map[ROW][COL],int x,int y,int* wheat_harvested_item,int* moves);
+void sell (int* wheat_harvested_item,int* money);
+void nap (int* game_hour,int* game_minute,int* moves);
+void buy (int* money, int* wheat_seed,int* moves);
 void setColor(int color){
 //	7: White, 9: Blue, 10: Green, 12: Red, 14: Yellow
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
 void intro();
-void saveGame(char map[ROW][COL], int water, int day, int money, int item,int seed);
-void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* item,int* seed);
+void updateTime(int* hour, int* minute, time_t* last_time);
+void saveGame(char map[ROW][COL], int water, int day, int money, int wheat_harvested_item,int wheat_seed,int game_hour,int game_minute,int moves);
+void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* wheat_harvested_item,int* wheat_seed,int* game_hour,int* game_minute,int* moves);
 
 #endif
