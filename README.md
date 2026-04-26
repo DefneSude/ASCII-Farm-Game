@@ -1,69 +1,49 @@
-\# 🌾 ASCII Farm Game
+# 🌾 ASCII Farm Game
 
+**A text-based farming simulation game written in C, featuring dynamic weather, a market economy, and a time-based save system.**
 
+This project is a console-based simulation where players manage a farm, grow crops, and trade resources. It utilizes the standard C library along with `windows.h` and `conio.h` for console manipulation, coloring, and keyboard input handling.
 
-\*\*A text-based farming simulation game written in C, featuring dynamic weather, a market economy, and a save system.\*\*
+## 🌟 Key Features
 
+* **🌱 Farming Mechanics:** A complete cycle of buying seeds, planting, watering, and harvesting wheat. 
+* **⛅ Dynamic Weather & Time:** Random weather events occur daily. Rain automates watering, while extreme heat causes evaporation. The game features a real-time tracking system that influences in-game hours and minutes.
+* **💧 Water Management:** Manage your limited water supply and refill from the well when needed.
+* **💰 Market Economy:** Sell harvested wheat to earn money and purchase new seeds or energy drinks from the interactive shop.
+* **🔋 Energy System:** Players have limited moves per day and must manage their energy by napping or consuming items to avoid collapsing.
+* **💾 Save/Load System:** Robust file handling allows you to save progress, map state, and resources to resume later (uses `farm_save.txt`).
+* **🎨 Colorful Interface:** Enhanced visual experience using console text coloring to differentiate field elements and UI components.
 
+## 🗺️ Map Legend (Symbols)
 
-This project is a console-based simulation where players manage a farm, grow crops, and trade resources. It utilizes the standard C library along with `windows.h` for console manipulation and coloring.
+The game uses specific ASCII characters and colors to represent the state of your field:
+* `.` : Empty Area
+* `S` : Seed (Yellow)
+* `W` : Watered Seed (Blue)
+* `G` : Grown Crop - Ready to Harvest (Green)
+* `D` : Dried Seed - Needs saving (Orange)
+* `!` : Dried Wheat (Orange)
+* `?` : Saved Crop (Light Blue)
+* `X` : Dead Crop (Red)
 
-
-
-\## 🌟 Key Features
-
-
-
-\* \*\*🌱 Farming Mechanics:\*\* A complete cycle of buying seeds, planting, watering, and harvesting crops.
-
-\* \*\*🌦️ Dynamic Weather System:\*\* Random weather events occur daily. Rain automates watering, while extreme heat causes evaporation.
-
-\* \*\*💧 Water Management:\*\* Manage your limited water supply and refill from the well when needed.
-
-\* \*\*💰 Market Economy:\*\* Sell harvested wheat to earn money and purchase new seeds from the shop.
-
-\* \*\*💾 Save/Load System:\*\* Robust file handling allows you to save progress and resume later (uses `farm\_save.txt`).
-
-\* \*\*🎨 Colorful Interface:\*\* Enhanced visual experience using console text coloring.
-
-
-
-\## 🎮 Controls
-
-
+## 🎮 Controls
 
 | Key / Input | Action |
-
 | :--- | :--- |
+| **Arrow Keys (← →)** | Navigate through the menu bar and shop items |
+| **ENTER** | Select an action |
+| **ESC** | Exit the game or current menu |
+| **Coordinate Input** | Enter `Row` and `Column` numbers to interact with the field |
 
-| \*\*Arrow Keys (← →)\*\* | Navigate through the menu bar |
+## 🚀 How to Run
 
-| \*\*ENTER\*\* | Select an action |
+This project is designed for **Windows** environments (due to the use of `windows.h` and `conio.h`).
 
-| \*\*ESC\*\* | Exit the game |
-
-| \*\*Coordinate Input\*\* | Enter `Row` and `Column` numbers to interact with the field |
-
-
-
-\## 🚀 How to Run
-
-
-
-This project is designed for \*\*Windows\*\* environments (due to the use of `windows.h` and `conio.h`).
-
-
-
-\### 1. Compile
-
+### 1. Compile
 You can use any C compiler (like GCC) or an IDE (Dev-C++, Code::Blocks, Visual Studio).
 
-
-
-\*\*Using GCC:\*\*
-
+**Using GCC:**
 ```bash
-
 gcc main.c -o farm.exe
 
 
