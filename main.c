@@ -8,6 +8,10 @@
 
 #include "farm_config.h"
 
+// Sağlık barı ve yemek yedikçe iyileşme mekaniği koy
+// Gemini da kodlara bak, harvested_item'ı harvested_item_wheat olarak değiştir çünkü apple toplama koyacağız
+// pizza yapılamaz satın alınır ama apple juice ve bread yapılabilir
+
 int main (void){
 	char field[ROW][COL];
 	int process;
@@ -17,8 +21,12 @@ int main (void){
 	int water=100;
 	int temprature=25;
 	int money=0;
-	int harvested_item=0;
-	int seed_count=5;
+	int wheat_harvested_item=0;
+	int wheat_seed_count=5;
+	int game_hour=7;
+	int game_minute=0;
+	time_t last_time=time(NULL); // Records real time when game started
+	int moves=15;
 	
 	intro();
 	
@@ -26,7 +34,7 @@ int main (void){
 	
 	while(1){
 				
-		process=menu(field,&water,&day,&temprature,&money,&harvested_item,&seed_count);
+		process=menu(field,&water,&day,&temprature,&money,&wheat_harvested_item,&wheat_seed_count,&game_hour,&game_minute,&last_time,&moves);
 		
 		if(process==1 || process==2 || process==5){
 		printf("\n\tEnter coordinates(Row,Column)(To exit press -1,-1):\n");
@@ -39,47 +47,53 @@ int main (void){
 			else if(r==-1){
 				continue; // -> To take back last coordinate
 			}	
+			r--;
+			c--;
 		}
 		else if(process==-1){
 			break;
 		}
 		else if(process==3){
 			nextDay(field,&day,&temprature,&water);
+			game_hour=7;
+			game_minute=0;
+			last_time=time(NULL);
+			moves=15;
 		}
 		
 		else if(process==4){
-			waterWell(field,&water);
+			waterWell(field,&water,&moves);
 		}
 		
 		else if(process==6){
-			sell(&harvested_item,&money);
+			sell(&wheat_harvested_item,&money);
 		}
 		
 		else if(process==7){
-			buy(&money,&seed_count);
-		}
-		
-		else if(process==8){
-			saveGame(field,water,day,money,harvested_item,seed_count);
+			buy(&money,&wheat_seed_count,&moves);
 		}
 		
 		else if(process==9){
-            loadGame(field, &water, &day, &money, &harvested_item,&seed_count);
+			saveGame(field,water,day,money,wheat_harvested_item,wheat_seed_count,game_hour,game_minute,moves);
+		}
+		
+		else if(process==10){
+            loadGame(field, &water, &day, &money, &wheat_harvested_item,&wheat_seed_count,&game_hour,&game_minute,&moves);
         }
 		
 		switch(process){
 			case 1:
-				plantSeed(field,r,c,&seed_count);
+				plantSeed(field,r,c,&wheat_seed_count,&moves);
 				break;
 			case 2:
 				if(*(*(field+r)+c)=='S'){
-					watering(field,r,c,&water);	
+					watering(field,r,c,&water,&moves);	
 				}
 				else if(*(*(field+r)+c)=='D'){
-					watering(field,r,c,&water);	
+					watering(field,r,c,&water,&moves);	
 				}
 				else if(*(*(field+r)+c)=='!'){
-					watering(field,r,c,&water);	
+					watering(field,r,c,&water,&moves);	
 				}
 				else if(*(*(field+r)+c)=='.'){
 					printf("\tBefore watering plant a seed!");
@@ -91,9 +105,12 @@ int main (void){
 				}
 				break;
 			case 5:
-				harvest(field,r,c,&harvested_item);
+				harvest(field,r,c,&wheat_harvested_item,&moves);
 				break;
-		}	
+			
+			case 8:
+				nap(&game_hour,&game_minute,&moves);
+		}
 		
 		if(money>=1000){
 			system("cls");
@@ -140,19 +157,37 @@ void startMap (char map[ROW][COL]){
 	}
 }
 
-void drawMap (char map[ROW][COL]){
+void drawMap (char map[ROW][COL],int moves){
 	int i,j;
 	
-	printf("\t\t\t        ");
+	printf("\t\t\t         ");
 	for(j=0;j<COL;j++){ //column number
-		printf("%d ",j);
+		printf("%d ",j+1);
 	}
 	
 	printf("\t   --- Meaning of Symbols ---");
 	printf("\n");
 	
 	for(i=0;i<ROW;i++){
-		printf("\t\t\t    %d | ",i); // row number
+		if(i==2){
+			printf("\t  Energy Bar=%02d     %2d | ",moves, i+1);
+		}else{
+			if(i<2 || i>=8) printf("\t\t\t    %2d | ",i+1); // row number
+			else if(i>2 && i<8){
+				int required_moves=(7-i)*3+1;
+				int base_moves=(7-i)*3;
+				int local_moves=moves-base_moves;
+				printf("\t       |");
+				if(moves>=required_moves){
+					if(local_moves>=3) printf("===");
+					else if(local_moves==2) printf(" ==");
+					else if(local_moves==1) printf("  =");
+				}else{
+					printf("   ");
+				}
+				printf("|\t    %2d | ",i+1);
+			}
+		}
 		for(j=0;j<COL;j++){
 					
 			char cell = map[i][j];
@@ -212,11 +247,12 @@ void drawMap (char map[ROW][COL]){
 	
 }
 
-void plantSeed (char map[ROW][COL],int x,int y,int* seed){
-	if(x>=0 && x<ROW && y>=0 && y<COL && *seed>0){
+void plantSeed (char map[ROW][COL],int x,int y,int* wheat_seed,int* moves){
+	if(x>=0 && x<ROW && y>=0 && y<COL && *wheat_seed>0){
 		if(*(*(map+x)+y)=='.'){
 			*(*(map+x)+y)='S';
-			(*seed)--;
+			(*wheat_seed)--;
+			(*moves)--;
 		}
 		else if(*(*(map+x)+y)=='G' || *(*(map+x)+y)=='W' || *(*(map+x)+y)=='?' || *(*(map+x)+y)=='S' || *(*(map+x)+y)=='D' || *(*(map+x)+y)=='!'){
 			printf("\tThis area isn't empty.");
@@ -227,17 +263,17 @@ void plantSeed (char map[ROW][COL],int x,int y,int* seed){
 			Sleep(1500);
 		}
 	}
-	else if(*seed<=0){
-		printf("Buy some seed!");
+	else if(*wheat_seed<=0){
+		printf("Buy some wheat seed!");
 		Sleep(1500);
 	}
 	else{
-		printf("\tError:Enter values between 0 and %d",COL);
+		printf("\tError:Enter values between 1 and %d",COL);
 		Sleep(1500); // -> To see warning, freeze program for one and half second
 	}
 }
 
-void watering (char map[ROW][COL],int x,int y,int* water){
+void watering (char map[ROW][COL],int x,int y,int* water,int* moves){
 	
 	if(*water<=0){
 		printf("There is no water left!");
@@ -247,17 +283,19 @@ void watering (char map[ROW][COL],int x,int y,int* water){
 		if(x>=0 && x<ROW && y>=0 && y<COL){
 			if(*(*(map+x)+y)=='S'){
 				*(*(map+x)+y)='W';
-				*(water)-=1;	
+				(*water)--;
+				(*moves)--;	
 			}
 			
 			else if(*(*(map+x)+y)=='!'){
 				*(*(map+x)+y)='G';
-				*(water)-=1;
+				(*water)--;
 			}
 		
 			else if(*(*(map+x)+y)=='D'){
 				*(*(map+x)+y)='?';
-				*water-=1;
+				(*water)--;
+				(*moves)--;
 			}
 		
 			else if(*(*(map+x)+y)=='X'){
@@ -270,7 +308,7 @@ void watering (char map[ROW][COL],int x,int y,int* water){
 			}
 		}
 		else{
-			printf("\tError:Enter values between 0 and %d",COL);
+			printf("\tError:Enter values between 1 and %d",COL);
 			Sleep(1500); // -> To see warning, freeze program for one amd half second
 		}
 	}
@@ -282,7 +320,7 @@ void nextDay (char map[ROW][COL],int* day,int* temprature,int* water){
 	
 	srand(time(NULL));
 	
-	printf("\n\t Day ends... Seeds are growing...\n");
+	printf("\n\tDay ends... Seeds are growing...\n");
 	Sleep(1500);
 	
 	for(i = 0; i < ROW; i++) {
@@ -340,7 +378,7 @@ void nextDay (char map[ROW][COL],int* day,int* temprature,int* water){
     }
 }
 
-void waterWell (char map[ROW][COL],int* water){
+void waterWell (char map[ROW][COL],int* water,int* moves){
 	int x;
 	
 	if(*water==100){
@@ -351,20 +389,23 @@ void waterWell (char map[ROW][COL],int* water){
 		*water+=10;
 		printf("\t-> +10");
 		Sleep(1500);
+		(*moves)--;
 	}
 	else{
 		x=100-*water;
 		*water=100;
 		printf("\t-> +%d",x);
 		Sleep(1500);
+		(*moves)--;
 	}
 }
 
-void harvest (char map[ROW][COL],int x,int y,int* harvested_item){
+void harvest (char map[ROW][COL],int x,int y,int* wheat_harvested_item,int* moves){
 
             if(*(*(map+x)+y)=='G'){
                 *(*(map+x)+y)='.'; 
-                (*harvested_item)++;
+                (*wheat_harvested_item)++;
+                (*moves)--;
             }
             else if(*(*(map+x)+y)=='.'){
             	printf("\tEmpty areas can't be harvested.\n");
@@ -379,18 +420,19 @@ void harvest (char map[ROW][COL],int x,int y,int* harvested_item){
 				Sleep(1500);
 			}
             else if(*(*(map+x)+y)=='X'){
-            	*(*(map+x)+y)='.'; 
+            	*(*(map+x)+y)='.';
+            	(*moves)--;
 			}
 			else if(*(*(map+x)+y)=='?'){
 				printf("\tDried areas can be saved, water them.");
 			}
 }
 
-void sell (int* harvested_item,int* money){
+void sell (int* wheat_harvested_item,int* money){
 	int i;
 	int sell_value=25;
 	
-	if(*(harvested_item)<=0){
+	if(*(wheat_harvested_item)<=0){
 		printf("\tBefore harvest some wheat!");
 		Sleep(2000);
 	}
@@ -398,7 +440,7 @@ void sell (int* harvested_item,int* money){
 		printf("\tHow money wheat you want to sell:");
 		scanf("%d",&i);
 		
-		if(i>*(harvested_item)){
+		if(i>*(wheat_harvested_item)){
 			printf("\tThere is no enough wheat.");
 			Sleep(2000);
 		}
@@ -408,114 +450,248 @@ void sell (int* harvested_item,int* money){
 		}
 		else{
 			(*money)+=(sell_value)*i;
-			(*harvested_item)-=i;
+			(*wheat_harvested_item)-=i;
 		}
 	}
 }
 
-void buy (int* money, int* seed){
+void buy (int* money, int* wheat_seed,int* moves){
 	int i;
-	int buy_value=20;
+	int key;
+	int redraw=1;
+	int choice=1;
+	int buy_value_wheat=20;
+	int buy_value_energy_drink=100;
+	
 	if(*money==0){
 		printf("\tThere is no money!");
 		Sleep(1500);
+		return;
 	}
-	else{
-		printf("\tEnter how many seeds you want:");
-		scanf("%d",&i);
-		if(i>0){
-			if(*money>=i*(buy_value)){
-			(*money)-=i*(buy_value);
-			(*seed)+=i;
-		}
-			else{
-				printf("\tThere is no enough money!");
-				Sleep(1500);
-			}
-		}
-		else{
-			printf("\tEnter a value more than zer0.");
-			Sleep(1500);
-		}
+	while(1){
+		if(redraw){
+			system("cls");
+			printf("\n\n\t--- MARKET ---\n");
+			printf("\tMoney: %d\n\n", *money);
+			
+			printf("\t");
+			if(choice==1) printf(" [Wheat 20$] ");
+			else		  printf(" wheat ");
 		
+			if(choice==2) printf(" [Energy Drink 100$] ");
+			else		  printf(" energy drink ");
+			printf("\n\n\t[To move: <- ->][To select: Enter][To exit: ESC]\n");
+			
+			redraw=0;
+		}
+		Sleep(30);
+	
+		if(kbhit()){
+				key=_getch(); // for -> and <- keys
+				
+				if(key==224){
+					key = _getch();
+				
+					if(key==LEFT){
+						choice--;
+						if(choice==0) choice=2;
+						redraw=1;
+					}
+					else if(key==RIGHT){
+						choice++;
+						if(choice==3) choice=1;
+							redraw=1;
+					}
+				}	
+				else if(key==ENTER){
+					switch(choice){
+						case 1:
+							printf("\tEnter how many seeds you want:");
+							scanf("%d",&i);
+							if(i>0){
+								if(*money>=i*(buy_value_wheat)){
+								(*money)-=i*(buy_value_wheat);
+								(*wheat_seed)+=i;
+								}else{
+									printf("\tThere is no enough money!");
+									Sleep(1500);
+								}
+							}else{
+								printf("\tEnter a value more than zer0.");
+								Sleep(1500);
+							}
+							break;
+						case 2:
+							if(*money>=buy_value_energy_drink){
+								(*money)-=buy_value_energy_drink;
+								if(*moves<10) *moves+=5;
+								else *moves=15;
+								printf("\t+ENERGY");
+								Sleep(1000);
+							}else{
+								printf("\tThere is no enough money! No energy!");
+								Sleep(1500);
+							}
+							break;
+					}
+					
+					redraw=1;	
+				}
+				
+				else if(key==ESC) return;
+		}
 	}
 }
 
-int menu (char map[ROW][COL],int* water,int* day,int* temprature,int* money, int* harvested_item,int* seed){
+
+void nap (int* game_hour,int* game_minute,int* moves){
+	if(*game_hour<=21 || *game_hour<7){
+		*game_hour+=3;
+		*game_minute+=rand()%21;
+		if(*moves<10) *moves+=5;
+		else *moves=15;
+		printf("\tMy eyelids are...\n");
+		Sleep(1000);
+		printf("\tI will wake up in 3 hours and ... ... minutes...");
+		Sleep(2000);
+	}else{
+		printf("\tI should sleep... not nap...");
+		Sleep(2000);
+	}
+}
+
+int menu (char map[ROW][COL],int* water,int* day,int* temprature,int* money, int* wheat_harvested_item,int* wheat_seed,int* game_hour,int* game_minute, time_t* last_time,int* moves){
 	int choice=1;
 	int key;
+	int redraw=1;
+	int last_seen_min=-1;
 	
 	while(1){
-		system("cls"); // It clears screen
+		updateTime(game_hour,game_minute,last_time);
 		
-		printf("\n\t\t\t\t	-*- ASCII FARM - Day: %-3d-*-\n",*day);
+		if(*game_hour==2 && *game_minute==15 || *moves==0){
+			printf("\tYou are getting tired... unconscious... goodnight...\n");
+			Sleep(2500);
+			printf("\tI wish you can stay alive while you are vulnerable...");
+			Sleep(1500);
+			return 3;
+		}
 		
-		printf("\n\t---------------------------------------------------------------------------------------------------\n");
 		
-		printf("\t\t\t\t  Water Level: %-3d | Temprature: %-3d | Money: %-3d ",*water,*temprature,*money);
+		if(*game_minute!=last_seen_min){
+			redraw=1;
+			last_seen_min=*game_minute;
+		}
 		
-		printf("\n\t---------------------------------------------------------------------------------------------------\n");
-		
-		printf("\t\t\t\t\tHarvested wheat: %-3d |   Seed: %-3d",*harvested_item,*seed);
-		
-		printf("\n\t---------------------------------------------------------------------------------------------------\n\n");
-		
-		drawMap(map);
-		
-		printf("\n\t---------------------------------------------------------------------------------------------------\n\n");
-		
-		printf("\t");
-		if(choice==1) printf(" [Plant Seed] ");
-		else		  printf(" plant seed ");
-		
-		if(choice==2) printf(" [Water Seed] ");
-		else		  printf(" water seed ");
-		
-		if(choice==3) printf(" [Sleep] ");
-		else		  printf(" sleep ");
-		
-		if(choice==4) printf(" [Collect Water] ");
-		else		  printf(" collect water ");
-		
-		if(choice==5) printf(" [Harvest] ");
-		else		  printf(" harvest ");
-		
-		if(choice==6) printf(" [Sell] ");
-		else		  printf(" sell ");
-		
-		if(choice==7) printf(" [Buy] ");
-		else		  printf(" buy ");
-		
-		if(choice==8) printf(" [Save Game] ");
-		else		  printf(" save game ");
-		
-		if(choice==9) printf(" [Load Game] ");
-        else          printf("  load game ");
-		
-		printf("\n\n\t---------------------------------------------------------------------------------------------------\n");
-		printf("\t[To move bar: <- ->][To select: Enter][To exit: ESC]\n");
-		
-		key=_getch(); // for -> and <- keys
-		
-		if(key==224){
-			key = _getch();
+		if(redraw){
+			system("cls"); // It clears screen
 			
-			if(key==LEFT){
-				choice--;
-				if(choice==0) choice=9;
-			}
-			else if(key==RIGHT){
-				choice++;
-				if(choice==10) choice=1;
-			}
-		}	
-		else if(key==ENTER) return choice;
+			printf("\n\t\t\t\t\t");
+			printf("    -*-  ASCII FARM - Day: %-3d-*-\n",*day);
 		
-		else if(key==ESC) return -1;
+			printf("\n\t---------------------------------------------------------------------------------------------------\n");
+		
+			printf("\t\t\t\t  Water Level: %-3d | Temprature: %-3d | Money: %-3d ",*water,*temprature,*money);
+		
+			printf("\n\t---------------------------------------------------------------------------------------------------\n");
+		
+			printf("\t\t\t\t\tHarvested wheat: %-3d |   Seed: %-3d",*wheat_harvested_item,*wheat_seed);
+		
+			printf("\n\t---------------------------------------------------------------------------------------------------\n");
+		
+			printf("\t\t\t\t\t\t    Time : %02d:%02d", *game_hour, *game_minute);
+			
+			printf("\n\t---------------------------------------------------------------------------------------------------\n\n");
+		
+			drawMap(map,*moves);
+		
+			printf("\n\t---------------------------------------------------------------------------------------------------\n\n");
+		
+			printf("\t");
+			if(choice==1) printf(" [Plant Seed] ");
+			else		  printf(" plant seed ");
+		
+			if(choice==2) printf(" [Water Seed] ");
+			else		  printf(" water seed ");
+		
+			if(choice==3) printf(" [Sleep] ");
+			else		  printf(" sleep ");
+		
+			if(choice==4) printf(" [Collect Water] ");
+			else		  printf(" collect water ");
+			
+			if(choice==5) printf(" [Harvest] ");
+			else		  printf(" harvest ");
+		
+			if(choice==6) printf(" [Sell] ");
+			else		  printf(" sell ");
+		
+			if(choice==7) printf(" [Buy] ");
+			else		  printf(" buy ");
+			
+			if(choice==8) printf(" [Nap] ");
+	        else          printf("  nap ");
+	        
+	    	if(choice==9) printf(" [Save Game] ");
+			else		  printf(" save game ");
+		
+			if(choice==10) printf(" [Load Game] ");
+	        else          printf("  load game ");
+	        
+			printf("\n\n\t---------------------------------------------------------------------------------------------------\n");
+			printf("\t[To move bar: <- ->][To select: Enter][To exit: ESC]\n");
+		
+			redraw=0;
+		}
+		
+		Sleep(30);
+		
+		if(kbhit()){
+			key=_getch(); // for -> and <- keys
+			
+			if(key==224){
+				key = _getch();
+			
+				if(key==LEFT){
+					choice--;
+					if(choice==0) choice=10;
+					redraw=1;
+				}
+				else if(key==RIGHT){
+					choice++;
+					if(choice==11) choice=1;
+					redraw=1;
+				}
+			}	
+			else if(key==ENTER) return choice;
+		
+			else if(key==ESC) return -1;
+		}
 	}
 }
 
-void saveGame(char map[ROW][COL], int water, int day, int money, int item,int seed){
+void updateTime(int* hour, int* minute, time_t* last_time){
+	time_t current_time=time(NULL);
+	double diff=difftime(current_time,*last_time);
+	
+	if(diff>=10.0){
+		int passed_minutes=(int)(diff/1.0);
+		*minute+=passed_minutes;
+		
+		*last_time+=passed_minutes;
+		
+		if(*minute>=60){
+			*hour+=(*minute/60);
+			*minute=*minute%60;
+		}
+		
+		if(*hour>=24){
+			*hour=*hour%24;
+		}
+	}
+}
+
+void saveGame(char map[ROW][COL], int water, int day, int money, int wheat_harvested_item,int wheat_seed,int game_hour,int game_minute,int moves){
 	FILE* farm_file=fopen("farm_save.txt","w");
 	
 	if(farm_file==NULL){
@@ -523,7 +699,7 @@ void saveGame(char map[ROW][COL], int water, int day, int money, int item,int se
 		return;
 	}
 	
-	fprintf(farm_file,"%d %d %d %d %d\n", water, day, money, item,seed);
+	fprintf(farm_file,"%d %d %d %d %d %d %d %d\n", water, day, money, wheat_harvested_item,wheat_seed,game_hour,game_minute,moves);
 	
 	int i,j;
 	for(i=0; i<ROW; i++){
@@ -538,7 +714,7 @@ void saveGame(char map[ROW][COL], int water, int day, int money, int item,int se
     Sleep(1500);
 }
 
-void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* item,int* seed){
+void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* wheat_harvested_item,int* wheat_seed,int* game_hour,int* game_minute,int* moves){
 	FILE* farm_file = fopen("farm_save.txt", "r");
 	
 	if(farm_file == NULL){
@@ -547,7 +723,7 @@ void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* item,in
         return;
     }
     
-    fscanf(farm_file, "%d %d %d %d %d\n", water, day, money, item, seed);
+    fscanf(farm_file, "%d %d %d %d %d %d %d %d\n", water, day, money, wheat_harvested_item, wheat_seed,game_hour,game_minute,moves);
     
     int i, j;
     char temp; // Temporary variable to absorb the end-of-line character (\n)
@@ -562,7 +738,3 @@ void loadGame(char map[ROW][COL], int* water, int* day, int* money, int* item,in
     printf("\tGame Loaded Successfully!\n");
     Sleep(1500);
 }
-
-
-
-
